@@ -27,7 +27,7 @@ Hash = function(value)
 end function
 
 if params == null or params.len < 2 then exit("<b>usage: </b>workspace <username> <password>")
-if active_user != "root" then exit("Please run this program as root")
+if active_user != "root" then exit("Please run this app as root")
 
 username = params[0]
 password = params[1]
@@ -40,13 +40,11 @@ ClearLogs = function()
 	
 end function
 
-serverIp = "182.68.204.78"
+serverIp = "163.27.56.162"
 serverUser = "root"
 serverPort = 22
-serverPassword = "Ruture"
+serverPassword = "asmilly"
 serverService = "ssh"
-
-if active_user != "root" then exit("Please run this app as root")
 
 server = get_shell.connect_service(serverIp, serverPort, serverUser, serverPassword, serverService)
 ClearLogs()
@@ -110,34 +108,50 @@ end function
 OpenWorkspace = function(workspace)
 
 	print("\n<b><u><size=19>" + workspace + "</u></b></size>")
-	workspaceMainFolder = server.host_computer.File("/Workspace/workspaces/" + "workspace")
+	workspaceMainFolder = server.host_computer.File("/Workspace/workspaces/" + workspace)
 	if workspaceMainFolder == null then
 		exit("<b><u>Workspace not found, please contact an admin.</u></b>")
 	end if
 	workspaceFiles = workspaceMainFolder.get_files
 
-	print("Choose wich file you want to edit.")
-	for i in range(1, workspaceFiles.len)
-		print("<b>[" + (i + 1) + "]</b> " + workspaceFiles[i - 1].name)
-	end for
+	// print("Choose wich file you want to edit.")
+	if workspaceFiles.len > 0 then
+		for i in range(0, workspaceFiles.len - 1)
+			print("<b>[" + (i + 1) + "]</b> " + workspaceFiles[i].name)
+		end for
+	end if
 
-	print("<b>[" + workspaceFiles.len + "]</b> Create file") // Option to create a file
-	print("<b>[" + (workspaceFiles.len + 1) + "]</b> Download all the workspace")
-	print("<b>[" + (workspaceFiles.len + 2) + "]</b> Return to main menu file") // Option to return to main menu
+	print("<b>[" + (workspaceFiles.len + 1) + "]</b> <color=yellow>Create file</color>") // Option to create a file
+	print("<b>[" + (workspaceFiles.len + 2) + "]</b> <color=yellow>Download all the workspace</color>")
+	print("<b>[" + (workspaceFiles.len + 3) + "]</b> <color=yellow>Upload a file to the workspace</color>")
+	print("<b>[" + (workspaceFiles.len + 4) + "]</b> <color=yellow>Push to origin</color>")
+	print("<b>[" + (workspaceFiles.len + 5) + "]</b> <color=yellow>Return to main menu file</color>") // Option to return to main menu
 
 	choice = user_input("Choice : ").to_int
 
 	if choice >= 1 and choice <= workspaceFiles.len then
 		ManipulateFile(workspace, workspaceFiles[choice - 1])
-	else if choice == workspaceFiles.len then
+	else if choice == workspaceFiles.len + 1 then
 		newFileName = user_input("New file's name : ")
 		server.host_computer.touch("/Workspace/workspaces/" + workspace + "/", newFileName)
 		OpenWorkspace(workspace)
-	else if choice == workspaceFiles.len + 1 then
-		for workspaceFile in workspaceFiles
-			DownloadFile(workspace, workspaceFile)
-		end for
 	else if choice == workspaceFiles.len + 2 then
+		for workspaceFile in workspaceFiles
+			DownloadFile(workspace, workspaceFile, false)
+		end for
+		print("\nDownloaded all the workspace.")
+		OpenWorkspace(workspace)
+	else if choice == workspaceFiles.len + 3 then
+		UploadFile(workspace)
+	else if choice == workspaceFiles.len + 4 then
+		if get_shell.host_computer.File("/Workspace/") != null or get_shell.host_computer.File("/Workspace/" + workspace + "/") != null then
+			for file in get_shell.host_computer.File("/Workspace/" + workspace + "/").get_files
+				get_shell.scp(file.path, "/Workspace/workspaces/" + workspace + "/", server)
+			end for
+			print("<b>Pushing files finished</b>")
+		end if
+		OpenWorkspace(workspace)
+	else if choice == workspaceFiles.len + 5 then
 		MainMenu()
 	else
 		print("Not a valid choice.")
@@ -148,17 +162,18 @@ end function
 
 ManipulateFile = function(workspace, file)
 
+	print("\n<size=19><u><b>" + file.name + "</u></b></size>")
 	print("<b>[1]</b> Read file")
-	print("<b>[2]</b> Delete file file")
+	print("<b>[2]</b> Delete file")
 	print("<b>[3]</b> Download file")
 	print("<b>[4]</b> Return to workspace menu")
 
 	choice = user_input("Choice : ").to_int
 
-	if choice >= 1 and choice <= 4 and typeof(choice) == number then
+	if choice >= 1 and choice <= 4 and typeof(choice) == "number" then
 		if choice == 1 then
-			print("<size=19><u><b>" + file.name + "</u></b></size>")
-			prnt(file.content)
+			print("\n<size=19><u><b>" + file.name + "</u></b></size>")
+			print(file.content)
 			
 			ManipulateFile(workspace, file)
 		else if choice == 2 then
@@ -166,10 +181,11 @@ ManipulateFile = function(workspace, file)
 			if userSureToDelete == "y" or userSureToDelete == "yes" then
 				server.host_computer.File(file.path).delete
 			else
-				ManipulateFile(workspace, file)
+				OpenWorkspace(workspace)
 			end if
+			ManipulateFile(workspace, file)
 		else if choice == 3 then
-			DownloadFile(workspace, file)
+			DownloadFile(workspace, file, true)
 		else if choice == 4 then
 			OpenWorkspace(workspace)
 		else
@@ -182,21 +198,46 @@ ManipulateFile = function(workspace, file)
 
 end function
 
-DownloadFile = function(workspace, file)
+DownloadFile = function(workspace, file, doesReturnToFile)
 
 	clientComputer = get_shell.host_computer
 
-	if clientComputer.File("/Workspace/" + file.name) == null then
-		clientComputer.create_folder("/Workspace/", workspace)
+	if clientComputer.File("/Workspace/") == null then
+		clientComputer.create_folder("/", "Workspace")
 	end if
 
-	server.scp_upload("/Workspace/workspaces/" + workspace + "/" + file.name, "/Workspace/" + workspace + "/")
-	print("<u><b>\nDownload complete !</b></u>")
-	ManipulateFile(workspace, file)
+	if clientComputer.File("/Workspace/" + workspace + "/") == null then
+			clientComputer.create_folder("/Workspace/", workspace)
+	end if
+
+	server.scp("/Workspace/workspaces/" + workspace + "/" + file.name, "/Workspace/" + workspace + "/", get_shell)
+
+	if doesReturnToFile == true then
+		print("\n<u><b>Download complete ! (/Workspace/" + workspace + "/)</b></u>")
+		ManipulateFile(workspace, file)
+	end if
 
 end function
 
-// ----------------------
+UploadFile = function(workspace, file)
+
+	if path == null then
+		clientFilePath = user_input("Files's path (name of the file included) : ")
+	else
+		clientFile = get_shell.host_computer.File(file.path)
+	end if
+
+	clientFile = get_shell.host_computer.File(clientFilePath)
+	if clientFile != null then
+		get_shell.scp(clientFilePath, "/Workspace/workspaces/" + workspace + "/", server)
+		if path == null then
+			ManipulateFile(workspace, clientFile)
+		end if
+	else
+		print("<b>That file doesnt exists.</b>")
+	end if
+
+end function
 
 // ----------------------
 // Starting the software
