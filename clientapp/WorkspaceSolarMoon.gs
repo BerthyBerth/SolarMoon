@@ -143,6 +143,7 @@ OpenWorkspace = function(workspace)
 		OpenWorkspace(workspace)
 	else if choice == workspaceFiles.len + 3 then
 		UploadFile(workspace)
+		OpenWorkspace(workspace)
 	else if choice == workspaceFiles.len + 4 then
 		if get_shell.host_computer.File("/Workspace/") != null or get_shell.host_computer.File("/Workspace/" + workspace + "/") != null then
 			for file in get_shell.host_computer.File("/Workspace/" + workspace + "/").get_files
@@ -219,7 +220,7 @@ DownloadFile = function(workspace, file, doesReturnToFile)
 
 end function
 
-UploadFile = function(workspace, file)
+UploadFile = function(workspace, file, doesReturnToFile)
 
 	if path == null then
 		clientFilePath = user_input("Files's path (name of the file included) : ")
@@ -231,7 +232,9 @@ UploadFile = function(workspace, file)
 	if clientFile != null then
 		get_shell.scp(clientFilePath, "/Workspace/workspaces/" + workspace + "/", server)
 		if path == null then
-			ManipulateFile(workspace, clientFile)
+			if doesReturnToFile == true then
+				ManipulateFile(workspace, clientFile)
+			end if
 		end if
 	else
 		print("<b>That file doesnt exists.</b>")
