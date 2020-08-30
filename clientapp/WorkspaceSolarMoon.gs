@@ -82,9 +82,11 @@ end function
 
 MainMenu = function()
 
+	clear_screen()
+
 	userWorkspaces = server.host_computer.File("/Workspace/users/" + username.lower + "/workspaces").content.split("\n") 
 
-    print("\n<b><u><size=19>Workspaces - " + username + "</size></u></b>")
+    print("<b><u><size=19>Workspaces - " + username + "</size></u></b>")
     for i in range(0, userWorkspaces.len - 1)
         print("<b>[" + (i + 1) + "]</b> " + userWorkspaces[i])
     end for
@@ -92,7 +94,9 @@ MainMenu = function()
 
 	mainMenuChoice = user_input("Choice : ").to_int
 	if mainMenuChoice >= 1 and mainMenuChoice <= userWorkspaces.len then
-		print("Opening " + userWorkspaces[mainMenuChoice - 1] + "...")
+		clear_screen()
+		print("<b><u>Opening " + userWorkspaces[mainMenuChoice - 1] + "...</u></b>")
+		wait(3)
 		OpenWorkspace(userWorkspaces[mainMenuChoice - 1])
 	else if mainMenuChoice == userWorkspaces.len + 1 then
 		exit("Have a good day !")
@@ -107,7 +111,9 @@ end function
 
 OpenWorkspace = function(workspace)
 
-	print("\n<b><u><size=19>" + workspace + "</u></b></size>")
+	clear_screen()
+
+	print("<b><u><size=19>" + workspace + "</u></b></size>")
 	workspaceMainFolder = server.host_computer.File("/Workspace/workspaces/" + workspace)
 	if workspaceMainFolder == null then
 		exit("<b><u>Workspace not found, please contact an admin.</u></b>")
@@ -130,10 +136,33 @@ OpenWorkspace = function(workspace)
 	choice = user_input("Choice : ").to_int
 
 	if choice >= 1 and choice <= workspaceFiles.len then
-		ManipulateFile(workspace, workspaceFiles[choice - 1])
+		print(typeof(workspaceFiles[choice - 1]))
+		print(workspaceFiles[choice - 1].is_binary)
+		if workspaceFiles[choice - 1].is_binary == true then
+			ManipulateBinaryFile(workspace, workspaceFiles[choice - 1])
+		else
+			ManipulateFile(workspace, workspaceFiles[choice - 1])
+		end if
 	else if choice == workspaceFiles.len + 1 then
 		newFileName = user_input("New file's name : ")
-		server.host_computer.touch("/Workspace/workspaces/" + workspace + "/", newFileName)
+		
+		doesFileAlreadyExists = false
+
+		for file in server.host_computer.File("/Workspace/workspaces/" + workspace + "/").get_files
+			if file.name == newFileName then
+				doesFileAlreadyExists = true
+			end if
+		end for
+
+		clear_screen()
+		print("<b>Creating " + newFileName + "...</b>")
+		wait(3)
+
+		if doesFileAlreadyExists == false then
+			server.host_computer.touch("/Workspace/workspaces/" + workspace + "/", newFileName)
+		else
+			print("<b>" + newFileName + " already exists</b>\n")
+		end if
 		OpenWorkspace(workspace)
 	else if choice == workspaceFiles.len + 2 then
 		for workspaceFile in workspaceFiles
@@ -161,9 +190,15 @@ OpenWorkspace = function(workspace)
 
 end function
 
-ManipulateFile = function(workspace, file)
+ManipulateFile = function(workspace, file, doesSkipLine)
 
-	print("\n<size=19><u><b>" + file.name + "</u></b></size>")
+	if doesSkipLine == true then
+		print("\n")
+	else
+		clear_screen()
+	end if
+
+	print("<size=19><u><b>" + file.name + "</u></b></size>")
 	print("<b>[1]</b> Read file")
 	print("<b>[2]</b> Delete file")
 	print("<b>[3]</b> Download file")
@@ -171,30 +206,59 @@ ManipulateFile = function(workspace, file)
 
 	choice = user_input("Choice : ").to_int
 
-	if choice >= 1 and choice <= 4 and typeof(choice) == "number" then
-		if choice == 1 then
-			print("\n<size=19><u><b>" + file.name + "</u></b></size>")
-			print(file.content)
-			
-			ManipulateFile(workspace, file)
-		else if choice == 2 then
-			userSureToDelete = user_input("Are you sure you want to delete " + file.name + " ? ").lower
-			if userSureToDelete == "y" or userSureToDelete == "yes" then
-				server.host_computer.File(file.path).delete
-			else
-				OpenWorkspace(workspace)
-			end if
-			ManipulateFile(workspace, file)
-		else if choice == 3 then
-			DownloadFile(workspace, file, true)
-		else if choice == 4 then
+	if choice == 1 then
+		print("\n<size=19><u><b>" + file.name + "</u></b></size>")
+		print(file.content)
+		ManipulateFile(workspace, file, true)
+	else if choice == 2 then
+		userSureToDelete = user_input("Are you sure you want to delete " + file.name + " ? ").lower
+		if userSureToDelete == "y" or userSureToDelete == "yes" then
+			server.host_computer.File(file.path).delete
 			OpenWorkspace(workspace)
 		else
-			exit("<color=red><u><b>There has been an error</b></u></color>")
+			ManipulateFile(workspace, file)
 		end if
+	else if choice == 3 then
+		DownloadFile(workspace, file, true)
+	else if choice == 4 then
+		OpenWorkspace(workspace)
 	else
 		print("Not a valid choice.")
 		ManipulateFile(workspace, file)
+	end if
+
+end function
+
+ManipulateBinaryFile = function(workspace, file, doesSkipLine)
+
+	if doesSkipLine == true then
+		print("\n")
+	else
+		clear_screen()
+	end if
+
+	print("<size=19><u><b>" + file.name + "</u></b></size>")
+	print("<b>[1]</b> Delete file")
+	print("<b>[2]</b> Download file")
+	print("<b>[3]</b> Return to workspace menu")
+
+	choice = user_input("Choice : ").to_int
+
+	if choice == 1 then
+		userSureToDelete = user_input("Are you sure you want to delete " + file.name + " ? ").lower
+		if userSureToDelete == "y" or userSureToDelete == "yes" then
+			server.host_computer.File(file.path).delete
+			OpenWorkspace(workspace)
+		else
+			ManipulateFile(workspace, file)
+		end if
+	else if choice == 2 then
+		DownloadFile(workspace, file, true)
+	else if choice == 3 then
+		OpenWorkspace(workspace)
+	else
+		print("<u><b>Invalid choice.</b></u>")
+		ManipulateBinaryFile(workspace, file)
 	end if
 
 end function
@@ -245,9 +309,19 @@ end function
 // ----------------------
 // Starting the software
 
+softwareVersion = "1.0.0"
+if server.host_computer.File("/Workspace/version").content != softwareVersion then
+	server.scp("/Workspace/Workspace", program_path, get_shell)
+	exit("<u><b>Restart the app, a update has been done.</b></u>")
+end if
+
 userDataFile = server.host_computer.File("/Workspace/users/" + username.lower + "/data")
+clear_screen()
+print("<b><u>Signing in. Please wait...</u></b>")
+wait(3)
 if GetSpecificUserInfo(username, "password") == Hash(password) then
 	MainMenu()
 else
+	clear_screen()
 	exit("<b><u>Wrong account informations.</u></b>")
 end if
