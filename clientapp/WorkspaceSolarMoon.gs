@@ -84,13 +84,22 @@ MainMenu = function()
 
 	clear_screen()
 
-	userWorkspaces = server.host_computer.File("/Workspace/users/" + username.lower + "/workspaces").content.split("\n") 
+	userWorkspacesFile = server.host_computer.File("/Workspace/users/" + username.lower + "/workspaces")
+	if userWorkspacesFile.content != "" then
+		userWorkspaces = userWorkspacesFile.content.split("\n")
+	else
+		userWorkspaces = []
+	end if
 
     print("<b><u><size=19>Workspaces - " + username + "</size></u></b>")
-    for i in range(0, userWorkspaces.len - 1)
-        print("<b>[" + (i + 1) + "]</b> " + userWorkspaces[i])
-    end for
-    print("<b>[" + (userWorkspaces.len + 1) + "]</b> " + "Exit")
+	if userWorkspaces != [] then
+		for i in range(0, userWorkspaces.len - 1)
+			print("<b>[" + (i + 1) + "]</b> " + userWorkspaces[i])
+		end for
+	end if
+	print("<b>[" + (userWorkspaces.len + 1) + "]</b> " + "Exit")
+
+	print(userWorkspaces.len)
 
 	mainMenuChoice = user_input("Choice : ").to_int
 	if mainMenuChoice >= 1 and mainMenuChoice <= userWorkspaces.len then
@@ -109,9 +118,13 @@ end function
 
 // ----------------------
 
-OpenWorkspace = function(workspace)
+OpenWorkspace = function(workspace, doesSkipLine)
 
-	clear_screen()
+	if doesSkipLine == true then
+		print("\n")
+	else
+		clear_screen()
+	end if
 
 	print("<b><u><size=19>" + workspace + "</u></b></size>")
 	workspaceMainFolder = server.host_computer.File("/Workspace/workspaces/" + workspace)
@@ -238,13 +251,18 @@ ManipulateBinaryFile = function(workspace, file, doesSkipLine)
 	end if
 
 	print("<size=19><u><b>" + file.name + "</u></b></size>")
-	print("<b>[1]</b> Delete file")
-	print("<b>[2]</b> Download file")
-	print("<b>[3]</b> Return to workspace menu")
+	print("<b>[1]</b> Execute file")
+	print("<b>[2]</b> Delete file")
+	print("<b>[3]</b> Download file")
+	print("<b>[4]</b> Return to workspace menu")
 
 	choice = user_input("Choice : ").to_int
 
 	if choice == 1 then
+		fileArgs = user_input("Args of the file (put a comma between them) : ").split(",").join(" ")
+		server.launch(file.path, fileArgs)
+		OpenWorkspace(workspace, true)
+	else if choice == 2 then
 		userSureToDelete = user_input("Are you sure you want to delete " + file.name + " ? ").lower
 		if userSureToDelete == "y" or userSureToDelete == "yes" then
 			server.host_computer.File(file.path).delete
@@ -252,9 +270,9 @@ ManipulateBinaryFile = function(workspace, file, doesSkipLine)
 		else
 			ManipulateFile(workspace, file)
 		end if
-	else if choice == 2 then
-		DownloadFile(workspace, file, true)
 	else if choice == 3 then
+		DownloadFile(workspace, file, true)
+	else if choice == 4 then
 		OpenWorkspace(workspace)
 	else
 		print("<u><b>Invalid choice.</b></u>")
