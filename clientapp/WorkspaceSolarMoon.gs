@@ -40,10 +40,10 @@ ClearLogs = function()
 	
 end function
 
-serverIp = "163.27.56.162"
+serverIp = "182.68.204.78"
 serverUser = "root"
 serverPort = 22
-serverPassword = "asmilly"
+serverPassword = "Ruture"
 serverService = "ssh"
 
 server = get_shell.connect_service(serverIp, serverPort, serverUser, serverPassword, serverService)
@@ -51,9 +51,9 @@ ClearLogs()
 
 // ----------------------
 
-GetUserInfos = function(userName)
+GetUserInfos = function(username)
 	
-	userFile = server.host_computer.File("/Workspace/users/" + userName.lower + "/data")
+	userFile = server.host_computer.File("/Workspace/users/" + username.lower + "/data")
 	if userFile == null then
 		return null
 	end if
@@ -75,6 +75,26 @@ GetSpecificUserInfo = function(username, dataName)
 
     // Case if the data name given has not been found
     return null
+
+end function
+
+ChangeUserInfo = function("username", dataName, newValue)
+
+	userInfos = GetUserInfos("username")
+
+	if userInfos == null then return
+
+	for i in range(0, userInfos.len - 1)
+		if userInfos[i].split(":")[0] == dataName.lower then
+			userInfos[i] = dataName.lower + ":" + newValue
+		end if
+	end for
+
+	if userFile = server.host_computer.File("/Workspace/users/" + username + "/data") != null then
+		userFile.set_content(userInfos.join("\n"))
+	else
+		return
+	end if
 
 end function
 
@@ -132,19 +152,31 @@ OpenWorkspace = function(workspace, doesSkipLine)
 		exit("<b><u>Workspace not found, please contact an admin.</u></b>")
 	end if
 	workspaceFiles = workspaceMainFolder.get_files
+	workspaceFolders = workspaceMainFolder.get_folders
+
+	menuClock = 0
 
 	// print("Choose wich file you want to edit.")
 	if workspaceFiles.len > 0 then
+		menuClock = menuClock + 1
 		for i in range(0, workspaceFiles.len - 1)
-			print("<b>[" + (i + 1) + "]</b> " + workspaceFiles[i].name)
+			print("<b>[" + (menuClock + 1) + "]</b> " + workspaceFiles[i].name)
 		end for
 	end if
 
-	print("<b>[" + (workspaceFiles.len + 1) + "]</b> <color=yellow>Create file</color>") // Option to create a file
-	print("<b>[" + (workspaceFiles.len + 2) + "]</b> <color=yellow>Download all the workspace</color>")
-	print("<b>[" + (workspaceFiles.len + 3) + "]</b> <color=yellow>Upload a file to the workspace</color>")
-	print("<b>[" + (workspaceFiles.len + 4) + "]</b> <color=yellow>Push to origin</color>")
-	print("<b>[" + (workspaceFiles.len + 5) + "]</b> <color=yellow>Return to main menu file</color>") // Option to return to main menu
+	if workspaceFolders.len > 0 then
+		menuClock = menuClock + 1
+		for menuClock in range(0, workspaceFolders.len - 1)
+			print("<b>[" + (menuClock + 1) + "]</b> /" + workspaceFiles[i].name)
+		end for
+	end if
+
+	print("<b>[" + ((workspaceFiles.len + 1) + (workspaceFolders.len + 1)) + "]</b> <color=yellow>Create file</color>") // Option to create a file
+	print("<b>[" + ((workspaceFiles.len + 2) + (workspaceFolders.len + 1)) + "]</b> <color=yellow>Create folder</color>") // Option to create a file
+	print("<b>[" + ((workspaceFiles.len + 3) + (workspaceFolders.len + 1)) + "]</b> <color=yellow>Download all the workspace</color>")
+	print("<b>[" + ((workspaceFiles.len + 4) + (workspaceFolders.len + 1)) + "]</b> <color=yellow>Upload a file to the workspace</color>")
+	print("<b>[" + ((workspaceFiles.len + 5) + (workspaceFolders.len + 1)) + "]</b> <color=yellow>Push to origin</color>")
+	print("<b>[" + ((workspaceFiles.len + 6) + (workspaceFolders.len + 1)) + "]</b> <color=yellow>Return to main menu file</color>") // Option to return to main menu
 
 	choice = user_input("Choice : ").to_int
 
