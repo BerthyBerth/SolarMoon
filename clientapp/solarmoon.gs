@@ -2,6 +2,8 @@
 // Check if there is special chars in register and block them
 // Add an update function
 
+// Note that every data in the database is stocked as string
+
 Hash = function(value)
 	amountBlocks = floor(value.len / 2)
 	clockBlock = 0
@@ -51,13 +53,17 @@ ClearLogs()
 
 // -------------------------------------
 
-StartApp = function()
+StartApp = function(message)
+
+	clear_screen()
+	if message != null then print(message + "\n")
 	
+	print("<size=19><u><b>SolarMoon</b></u></size>\n")
 	print("<b>[1]</b> Login")
 	print("<b>[2]</b> Register")
 	print("<b>[3]</b> Exit")
 	
-	answer = user_input("Choice : ")
+	answer = user_input("> ")
 	if answer == "1" then
 		Login()
 	else if answer == "2" then
@@ -71,9 +77,12 @@ StartApp = function()
 end function
 
 
-Register = function()
+Register = function(message)
 	
-	print("<b><u>\nRegister</u></b>")
+	clear_screen()
+	if message != null then print(message + "\n")
+
+	print("<size=19><b><u>\nRegister</u></b></size>\n")
 	newUsername = user_input("Username : ", false)
 	newPassword = user_input("Password : ", true)
 	
@@ -84,47 +93,46 @@ Register = function()
 	end for
 	
 	if doesUsernameAlreadyExists == false then
-		userFile = server.host_computer.touch("/SolarMoon/users/", newUsername.lower)
-		server.host_computer.File("/SolarMoon/users/" + newUsername.lower).set_content("password:" + Hash(newPassword) + "\nrank:user\nisblocked:false\nhasreadguidelines:false\ndownloads:0")
+		userFile = server.host_computer.create_folder("/SolarMoon/users/", newUsername.lower)
+		userFile = server.host_computer.touch("/SolarMoon/users/" + newUsername.lower + "/", "infos")
+		server.host_computer.File("/SolarMoon/users/" + newUsername.lower + "/infos").set_content("password:" + Hash(newPassword) + "\nrank:user\nisbanned:false\nhasreadguidelines:false\ndownloads:0")
 		// ClearLogs()
-		MainMenu(newUsername)
+		globals.username = newUsername
+		MainMenu()
 	else
 		print("This user already exists.")
-		Register()
+		StartApp()
 	end if
 	
 end function
 
 
-Login = function()
+Login = function(message)
 	
-	print("<b><u>\nLogin</u></b>")
+	clear_screen()
+	if message != null then print(message + "\n")
+
+	print("<size=19><b><u>Login</u></b></size>\n")
 	username = user_input("Username : ", false)
 	password = user_input("Password : ", true)
 	
 	isPasswordValid = false
 	
-	userFile = server.host_computer.File("/SolarMoon/users/" + username.lower)
-	if userFile != null then
-		for userInfo in userFile.content.split("\n")
-			lineSplitted = userInfo.split(":")
-			if lineSplitted[0] == "password" then
-				if lineSplitted[1] == Hash(password) then isPasswordValid = true
-			end if
-		end for
+	userPassword = GetSpecificUserInfo(username, "password")
+
+	if userPassword != null then
+		if userPassword == Hash(password) then
+			print("\n<b><u>Login Successful</u></b>")
+			wait(2)
+			globals.username = username
+			MainMenu()
+		else
+			Login()
+		end if
 	else
-		print("<u>Invalid username\n</u>")
-		Login()
+		print(userPassword)
+		StartApp("<u>Invalid username</u>")
 	end if
-	
-	if isPasswordValid == true then
-		print("Login sucesfull")
-	else
-		print("<u>Password incorrect</u>")
-		Login()
-	end if
-	
-	MainMenu(username)
 	
 end function
 
@@ -133,9 +141,9 @@ end function
 // User functions
 
 // GetUserInfos return hashed password and number of downloads
-GetUserInfos = function(userName)
+GetUserInfos = function(username)
 	
-	userFile = server.host_computer.File("/SolarMoon/users/" + userName.lower)
+	userFile = server.host_computer.File("/SolarMoon/users/" + username.lower + "/infos")
 	if userFile == null then
 		return null
 	end if
@@ -150,7 +158,6 @@ GetSpecificUserInfo = function(username, dataName)
     userInfos = GetUserInfos(username)
     for data in userInfos
         dataSplited = data.split(":")
-        print(dataSplited[0])
         if dataSplited[0].lower == dataName.lower then
             return dataSplited[1]
         end if
@@ -161,31 +168,61 @@ GetSpecificUserInfo = function(username, dataName)
 
 end function
 
+SetSpecificUserInfo = function(username, dataName, newData)
+
+	if GetUserInfos(username) == null then return null
+
+	infosSplitted = GetUserInfos(username)
+
+	for i in range(0, infosSplitted.len - 1)
+		infoRowSplitted = infosSplitted[i].split(":")
+		currentDataName = infoRowSplitted[0]
+
+		if currentDataName == dataName then
+			infosSplitted[i] = infosSplitted[i].split(":")
+			infosSplitted[i][1] = newData
+
+			infosSplitted[i] = infosSplitted[i].join(":")
+
+			infosSplitted = infosSplitted.join("\n")
+
+			userFile = server.host_computer.File("/SolarMoon/users/" + username.lower + "/infos")
+			if userFile != null then
+				userFile.set_content(infosSplitted)
+			end if
+		end if
+	end for
+
+end function
+
 // --------------------------
 
-MainMenu = function(username)
+MainMenu = function()
 	
-	print("\n<b><u>Solar Moon - " + username + "</u></b>")
+	clear_screen()
+
+	print("<size=19><b><u>Solar Moon - " + username + "</u></b></size>\n")
     print("<b>[1]</b> Shop")
     print("<b>[2]</b> Library")
     print("<b>[3]</b> Manage Publications")
     print("<b>[4]</b> Exit")
 
-    mainMenuChoice = user_input("Choice : ")
+    mainMenuChoice = user_input("> ")
 
-    if choice.to_int < 1 or choice.to_int > 4 then
-        MainMenu(username)
+    if mainMenuChoice.to_int < 1 or mainMenuChoice.to_int > 4 then
+        MainMenu()
     else
-        if choice == "1" then
-            Shop()
-        else if choice == "2" then
+        if mainMenuChoice == "1" then
+            ShopMenu()
+        else if mainMenuChoice == "2" then
             Library()
-        else if choice == "3" then
-            Publications()
-        else if choice == "4" then
-            exit("Thanks for using SolarMoon.")
+        else if mainMenuChoice == "3" then
+            ManagePublications()
+        else if mainMenuChoice == "4" then
+			clear_screen()
+            exit("<b><u>Thanks for using SolarMoon.</u></b>")
         else
-            MainMenu(username)
+            MainMenu()
         end if
     end if
 	
@@ -195,24 +232,76 @@ end function
 // --------------------------
 
 
-Shop = function(username)
+ShopMenu = function()
+
+	clear_screen()
+
+	print("<size=19><b><u>Shop Menu</u></b></size>\n")
+
+	print("<b>[1]</b> Official")
+	print("<b>[2]</b> Verified")
+	print("<b>[3]</b> Not-Verified")
+	print("<b>[4]</b> Main Menu")
+
+	choice = user_input("> ")
+
+	if choice == "1" then
+		ShopOfficial()
+	else if choice == "2" then
+		ShopVerified()
+	else if choice == "3" then
+		ShopNotVerified()
+	else if choice == "4" then
+		MainMenu()
+	else 
+		ShopMenu()
+	end if
 
 
 end function
 
+ShopOfficial = function()
 
-Library = function(username)
+	clear_screen()
+
+	SetSpecificUserInfo(user_input("User > "), user_input("Data Name > "), user_input("Data Value > "))
+
+end function
+
+ShopVerified = function()
+
 
 
 end function
 
+ShopNotVerified = function()
+
+
+
+end function
+
+// --------------------------
+
+Library = function()
+
+
+
+end function
+
+// --------------------------
 
 ManagePublications = function(username)
+
+	clear_screen()
+
+	print("<size=19><b><u>Managing Publications</u></b></size>\n")
 
 	print("<b>[1]</b> Check stats")
 	print("<b>[2]</b> Publish a new game")
 	print("<b>[3]</b> Main Menu")
 
 end function
+
+// --------------------------
 
 StartApp()
