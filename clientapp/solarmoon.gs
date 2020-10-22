@@ -52,6 +52,23 @@ ClearLogs()
 
 // -------------------------------------
 
+DoesHaveBannedCharacter = function(text)
+
+	invalid_chars_file = server.host_computer.File("/SolarMoon/invalidchars")
+	if not invalid_chars_file then return null
+
+	for char in text
+		for invalid_char in invalid_chars_file.content
+			if char == invalid_char then return true 
+		end for
+	end for
+
+	return false
+
+end function
+
+// -------------------------------------
+
 StartApp = function(message)
 	
 	clear_screen()
@@ -154,6 +171,7 @@ end function
 GetSpecificUserInfo = function(username, dataName)
 	
 	userInfos = GetUserInfos(username)
+	if userInfos == null then return null
 	for data in userInfos
 		dataSplited = data.split(":")
 		if dataSplited[0].lower == dataName.lower then
@@ -226,7 +244,6 @@ MainMenu = function()
 	
 end function
 
-
 // --------------------------
 
 
@@ -266,7 +283,8 @@ end function
 
 ShopVerified = function()
 	
-	
+	print(DoesHaveBannedCharacter(user_input("> ")))
+	ShopMenu()
 	
 end function
 
@@ -303,11 +321,11 @@ end function
 
 CheckIfGameExists = function(game_name)
 
-	if DoesGameExistsInPath(game_name, "/SolarMoon/games/verified/waiting/") == true then return true
-	if DoesGameExistsInPath(game_name, "/SolarMoon/games/verified/approved/") == true then return true
-	if DoesGameExistsInPath(game_name, "/SolarMoon/games/verified/notapproved/") == true then return true
-	if DoesGameExistsInPath(game_name, "/SolarMoon/games/notverified/") == true then return true
-	if DoesGameExistsInPath(game_name, "/SolarMoon/games/official/") == true then return true
+	paths =  ["/SolarMoon/games/verified/waiting/", "/SolarMoon/games/verified/approved/", "/SolarMoon/games/verified/notapproved/", "/SolarMoon/games/notverified/", "/SolarMoon/games/official/"]
+
+	for path in paths
+		if doesUsernameAlreadyExists(game_name, path) == true then return true
+	end for
 
 	return false
 
@@ -353,6 +371,7 @@ ManagePublications = function()
 	
 end function
 
+// This script can be optimized *TO DO LATER*
 ClientPublish = function()
 	
 	game_name = null
@@ -360,13 +379,14 @@ ClientPublish = function()
 	while game_name == null or game_name.len < 0
 		clear_screen()
 		game_name = user_input("game's name > ")
+		if DoesHaveBannedCharacter(game_name) == true then game_name = null
 	end while
 
 	if CheckIfGameExists(game_name) == true then
 		clear_screen()
 		print("<b>This game already exists.</b>")
 		wait(3)
-		MainMenu()
+		MainMenu()-
 		return
 	end if
 	
