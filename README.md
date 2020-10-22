@@ -1,3 +1,3 @@
 # SolarMoon
 
-Repository of the codes made by Fenyco for the SolarMoon project.
+Repository of the codes made by Fenyco and Lookas for the SolarMoon project.
