@@ -324,7 +324,7 @@ CheckIfGameExists = function(game_name)
 	paths =  ["/SolarMoon/games/verified/waiting/", "/SolarMoon/games/verified/approved/", "/SolarMoon/games/verified/notapproved/", "/SolarMoon/games/notverified/", "/SolarMoon/games/official/"]
 
 	for path in paths
-		if doesUsernameAlreadyExists(game_name, path) == true then return true
+		if DoesGameExistsInPath(game_name, path) == true then return true
 	end for
 
 	return false
@@ -386,7 +386,7 @@ ClientPublish = function()
 		clear_screen()
 		print("<b>This game already exists.</b>")
 		wait(3)
-		MainMenu()-
+		MainMenu()
 		return
 	end if
 	
@@ -412,6 +412,7 @@ ClientPublish = function()
 			source_tool_path = user_input("Source code path (.src) > ")
 			
 			source_tool = get_shell.host_computer.File(source_tool_path)
+			game_file_name = source_tool.name
 			if typeof(source_tool) == "file" then is_sourcetool_found = true
 		end while
 
@@ -419,7 +420,9 @@ ClientPublish = function()
 		get_shell.scp(source_tool.path, "/SolarMoon/games/verified/waiting/" + game_name, server)
 		server.host_computer.touch("/SolarMoon/games/verified/waiting/" + game_name, "infos")
 		info_file = server.host_computer.File("/SolarMoon/games/verified/waiting/" + game_name + "/infos")
+		print(info_file)
 		info_file.set_content("dev:" + username)
+		server.host_computer.File("/SolarMoon/games/notverified/" + game_name + "/" + game_file_name).rename("source")
 
 		AddGamePropertyToAccount(username, game_name)
 
@@ -437,6 +440,7 @@ ClientPublish = function()
 			source_tool_path = user_input("Source bin path > ")
 			
 			source_tool = get_shell.host_computer.File(source_tool_path)
+			game_file_name = source_tool.name
 			if typeof(source_tool) == "file" and source_tool.is_binary then is_sourcetool_found = true
 		end while
 
@@ -445,6 +449,7 @@ ClientPublish = function()
 		server.host_computer.touch("/SolarMoon/games/notverified/" + game_name, "infos")
 		info_file = server.host_computer.File("/SolarMoon/games/notverified/" + game_name + "/infos")
 		info_file.set_content("dev:" + username)
+		server.host_computer.File("/SolarMoon/games/notverified/" + game_name + "/" + game_file_name).rename("source")
 
 		AddGamePropertyToAccount(username, game_name)
 
