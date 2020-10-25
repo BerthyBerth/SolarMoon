@@ -52,6 +52,28 @@ ClearLogs()
 
 // -------------------------------------
 
+version = "1.0.0"
+
+UpdateVerify = function()
+
+	client_program_filename = program_path.split("/")[-1]
+
+	version_file = server.host_computer.File("/SolarMoon/version")
+	if not version_file or version_file.content != version then
+		server.scp("/SolarMoon/SolarMoon", get_shell.host_computer(program_path).parent, get_shell)
+
+		if client_program_filename != "SolarMoon" then
+			get_shell.host_computer.File(get_shell.host_computer(program_path).parent + "/SolarMoon").rename(client_program_filename)
+		end if
+
+		get_shell.launch(program_path)
+		exit()
+	end if
+
+end function
+
+// -------------------------------------
+
 DoesHaveBannedCharacter = function(text)
 
 	invalid_chars_file = server.host_computer.File("/SolarMoon/invalidchars")
@@ -71,10 +93,12 @@ end function
 
 StartApp = function(message)
 	
+	UpdateVerify()
+
 	clear_screen()
 	if message != null then print(message + "\n")
 	
-	print("<size=19><u><b>SolarMoon</b></u></size>\n")
+	print("<size=19><u><b>SolarMoon - " + version +"</b></u></size>\n")
 	print("<b>[1]</b> Login")
 	print("<b>[2]</b> Register")
 	print("<b>[3]</b> Exit")
@@ -379,7 +403,7 @@ ClientPublish = function()
 	while game_name == null or game_name.len < 0
 		clear_screen()
 		game_name = user_input("game's name > ")
-		if DoesHaveBannedCharacter(game_name) == true then game_name = null
+		if DoesHaveBannedCharacter(game_name) == true and game_name.len > 15 then game_name = null
 	end while
 
 	if CheckIfGameExists(game_name) == true then
@@ -404,7 +428,8 @@ ClientPublish = function()
 	end while
 				
 	if typeof_verification == "1" then
-		
+		// Verified
+
 		is_sourcetool_found = false
 
 		while is_sourcetool_found == false
@@ -420,9 +445,9 @@ ClientPublish = function()
 		get_shell.scp(source_tool.path, "/SolarMoon/games/verified/waiting/" + game_name, server)
 		server.host_computer.touch("/SolarMoon/games/verified/waiting/" + game_name, "infos")
 		info_file = server.host_computer.File("/SolarMoon/games/verified/waiting/" + game_name + "/infos")
-		print(info_file)
 		info_file.set_content("dev:" + username)
-		server.host_computer.File("/SolarMoon/games/notverified/" + game_name + "/" + game_file_name).rename("source")
+		gamefile_server = server.host_computer.File("/SolarMoon/games/verified/waiting/" + game_name + "/" + game_file_name)
+		gamefile_server.rename("source.src")
 
 		AddGamePropertyToAccount(username, game_name)
 
@@ -432,6 +457,7 @@ ClientPublish = function()
 		MainMenu()
 		
 	else if typeof_verification == "2" then
+		// Non-verified
 
 		is_sourcetool_found = false
 
