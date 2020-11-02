@@ -40,10 +40,10 @@ ClearLogs = function()
 	
 end function
 
-serverIp = "182.68.204.78"
+serverIp = "163.27.56.162"
 serverUser = "root"
 serverPort = 22
-serverPassword = "Ruture"
+serverPassword = "asmilly"
 serverService = "ssh"
 
 server = get_shell.connect_service(serverIp, serverPort, serverUser, serverPassword, serverService)
