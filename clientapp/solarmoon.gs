@@ -31,11 +31,10 @@ Hash = function(value)
 	return hashedValue
 end function
 
-
 ClearLogs = function()
-	
+
 	get_shell.host_computer.File("/var/system.log").delete
-	
+
 end function
 
 
@@ -57,15 +56,22 @@ version = "1.0.0"
 UpdateVerify = function()
 
 	client_program_filename = program_path.split("/")[-1]
+	server_app_bin_path = get_shell.host_computer.File(program_path).parent.path + "/SolarMoon"
+	//get_shell.host_computer.File(program_path).parent
 
 	version_file = server.host_computer.File("/SolarMoon/version")
 	if not version_file or version_file.content != version then
-		server.scp("/SolarMoon/SolarMoon", get_shell.host_computer(program_path).parent, get_shell)
+		server.scp("/SolarMoon/SolarMoon", "/bin", get_shell)
 
 		if client_program_filename != "SolarMoon" then
-			get_shell.host_computer.File(get_shell.host_computer(program_path).parent + "/SolarMoon").rename(client_program_filename)
+			file = get_shell.host_computer.File(get_shell.host_computer.File(program_path).parent.path + "SolarMoon")
+
+			if not file then exit("<b><u><color=red>There has been an error in the update.</color></u></b>")
+
+			file.rename(client_program_filename)
 		end if
 
+		clear_screen
 		get_shell.launch(program_path)
 		exit()
 	end if
@@ -81,7 +87,7 @@ DoesHaveBannedCharacter = function(text)
 
 	for char in text
 		for invalid_char in invalid_chars_file.content
-			if char == invalid_char then return true 
+			if char == invalid_char then return true
 		end for
 	end for
 
@@ -92,17 +98,17 @@ end function
 // -------------------------------------
 
 StartApp = function(message)
-	
+
 	UpdateVerify()
 
 	clear_screen()
 	if message != null then print(message + "\n")
-	
+
 	print("<size=19><u><b>SolarMoon - " + version +"</b></u></size>\n")
 	print("<b>[1]</b> Login")
 	print("<b>[2]</b> Register")
 	print("<b>[3]</b> Exit")
-	
+
 	answer = user_input("> ")
 	if answer == "1" then
 		Login()
@@ -113,25 +119,24 @@ StartApp = function(message)
 	else
 		StartApp()
 	end if
-	
+
 end function
 
-
 Register = function(message)
-	
+
 	clear_screen()
 	if message != null then print(message + "\n")
-	
+
 	print("<size=19><b><u>\nRegister</u></b></size>\n")
 	newUsername = user_input("Username : ", false)
 	newPassword = user_input("Password : ", true)
-	
+
 	doesUsernameAlreadyExists = false
-	
+
 	for file in server.host_computer.File("/SolarMoon/users/").get_files
 		if file.name.lower == newUsername.lower then doesUsernameAlreadyExists = true
 	end for
-	
+
 	if doesUsernameAlreadyExists == false then
 		userFile = server.host_computer.create_folder("/SolarMoon/users/", newUsername.lower)
 		userFile = server.host_computer.touch("/SolarMoon/users/" + newUsername.lower + "/", "infos")
@@ -143,23 +148,23 @@ Register = function(message)
 		print("This user already exists.")
 		StartApp()
 	end if
-	
+
 end function
 
 
 Login = function(message)
-	
+
 	clear_screen()
 	if message != null then print(message + "\n")
-	
+
 	print("<size=19><b><u>Login</u></b></size>\n")
 	username = user_input("Username : ", false)
 	password = user_input("Password : ", true)
-	
+
 	isPasswordValid = false
-	
+
 	userPassword = GetSpecificUserInfo(username, "password")
-	
+
 	if userPassword != null then
 		if userPassword == Hash(password) then
 			print("\n<b><u>Login Successful</u></b>")
@@ -172,7 +177,7 @@ Login = function(message)
 	else
 		StartApp("<u>Invalid username</u>")
 	end if
-	
+
 end function
 
 
@@ -181,19 +186,19 @@ end function
 
 // GetUserInfos return hashed password and number of downloads
 GetUserInfos = function(username)
-	
+
 	userFile = server.host_computer.File("/SolarMoon/users/" + username.lower + "/infos")
 	if userFile == null then
 		return null
 	end if
-	
-	userInfos = userFile.content.split("\n") 
+
+	userInfos = userFile.content.split("\n")
 	return userInfos
-	
+
 end function
 
 GetSpecificUserInfo = function(username, dataName)
-	
+
 	userInfos = GetUserInfos(username)
 	if userInfos == null then return null
 	for data in userInfos
@@ -202,53 +207,53 @@ GetSpecificUserInfo = function(username, dataName)
 			return dataSplited[1]
 		end if
 	end for
-	
+
 	// Case if the data name given has not been found
 	return null
-	
+
 end function
 
 SetSpecificUserInfo = function(username, dataName, newData)
-	
+
 	if GetUserInfos(username) == null then return null
-	
+
 	infosSplitted = GetUserInfos(username)
-	
+
 	for i in range(0, infosSplitted.len - 1)
 		infoRowSplitted = infosSplitted[i].split(":")
 		currentDataName = infoRowSplitted[0]
-		
+
 		if currentDataName == dataName then
 			infosSplitted[i] = infosSplitted[i].split(":")
 			infosSplitted[i][1] = newData
-			
+
 			infosSplitted[i] = infosSplitted[i].join(":")
-			
+
 			infosSplitted = infosSplitted.join("\n")
-			
+
 			userFile = server.host_computer.File("/SolarMoon/users/" + username.lower + "/infos")
 			if userFile != null then
 				userFile.set_content(infosSplitted)
 			end if
 		end if
 	end for
-	
+
 end function
 
 // --------------------------
 
 MainMenu = function()
-	
+
 	clear_screen()
-	
+
 	print("<size=19><b><u>Solar Moon - " + username + "</u></b></size>\n")
 	print("<b>[1]</b> Shop")
 	print("<b>[2]</b> Library")
 	print("<b>[3]</b> Manage Publications")
 	print("<b>[4]</b> Exit")
-	
+
 	mainMenuChoice = user_input("> ")
-	
+
 	if mainMenuChoice.to_int < 1 or mainMenuChoice.to_int > 4 then
 		MainMenu()
 	else
@@ -265,25 +270,25 @@ MainMenu = function()
 			MainMenu()
 		end if
 	end if
-	
+
 end function
 
 // --------------------------
 
 
 ShopMenu = function()
-	
+
 	clear_screen()
-	
+
 	print("<size=19><b><u>Shop Menu</u></b></size>\n")
-	
+
 	print("<b>[1]</b> Official")
 	print("<b>[2]</b> Verified")
 	print("<b>[3]</b> Not-Verified")
 	print("<b>[4]</b> Main Menu")
-	
+
 	choice = user_input("> ")
-	
+
 	if choice == "1" then
 		ShopOfficial()
 	else if choice == "2" then
@@ -292,38 +297,48 @@ ShopMenu = function()
 		ShopNotVerified()
 	else if choice == "4" then
 		MainMenu()
-	else 
+	else
 		ShopMenu()
 	end if
-	
-	
+
+
 end function
 
 ShopOfficial = function()
-	
+
 	clear_screen()
-	
+
 end function
 
 ShopVerified = function()
-	
-	print(DoesHaveBannedCharacter(user_input("> ")))
-	ShopMenu()
-	
+
+
+
 end function
 
 ShopNotVerified = function()
-	
-	
-	
+	clear_screen()
+
+	games = server.host_computer.File("/SolarMoon/games/notverified/").get_folders
+
+	print("<size=19><b><u>Shop Not Verified</u></b></size>\n")
+
+	for i in range(0, games)
+		print("<b>[" + i + "]</b> " + games[i].name)
+	end for
+
+	print("<b>[" + games.len + 1 + "</b> Main Menu")
+
+	choice = user_input(">").to_int
+
 end function
 
 // --------------------------
 
 Library = function()
-	
-	
-	
+
+
+
 end function
 
 // --------------------------
@@ -372,19 +387,19 @@ end function
 // --------------------------
 
 ManagePublications = function()
-	
+
 	clear_screen()
-	
+
 	print("<size=19><b><u>Managing Publications</u></b></size>\n")
-	
+
 	print("<b>[1]</b> Check stats")
 	print("<b>[2]</b> Publish a new game")
 	print("<b>[3]</b> Main Menu")
-	
+
 	choice = user_input("> ")
-	
+
 	if choice == "1" then
-		
+
 	else if choice == "2" then
 		ClientPublish()
 	else if choice == "3" then
@@ -392,14 +407,14 @@ ManagePublications = function()
 	else
 		ManagePublications()
 	end if
-	
+
 end function
 
 // This script can be optimized *TO DO LATER*
 ClientPublish = function()
-	
+
 	game_name = null
-	
+
 	while game_name == null or game_name.len < 0
 		clear_screen()
 		game_name = user_input("game's name > ")
@@ -413,12 +428,12 @@ ClientPublish = function()
 		MainMenu()
 		return
 	end if
-	
+
 	typeof_verification = null
-	
+
 	while true
 		clear_screen()
-		
+
 		print("<b>[1]</b> Verified (upload code, <u>public will still only get bin executable</u>)")
 		print("<b>[2]</b> Non-Verified (upload bin)")
 
@@ -426,7 +441,7 @@ ClientPublish = function()
 
 		if typeof_verification == "1" or typeof_verification == "2" then break
 	end while
-				
+
 	if typeof_verification == "1" then
 		// Verified
 
@@ -435,7 +450,7 @@ ClientPublish = function()
 		while is_sourcetool_found == false
 			clear_screen()
 			source_tool_path = user_input("Source code path (.src) > ")
-			
+
 			source_tool = get_shell.host_computer.File(source_tool_path)
 			game_file_name = source_tool.name
 			if typeof(source_tool) == "file" then is_sourcetool_found = true
@@ -455,7 +470,7 @@ ClientPublish = function()
 		print("<b>Sucessfully created the game. The game is currently in verification process.</b>")
 		wait(7)
 		MainMenu()
-		
+
 	else if typeof_verification == "2" then
 		// Non-verified
 
@@ -464,7 +479,7 @@ ClientPublish = function()
 		while is_sourcetool_found == false
 			clear_screen()
 			source_tool_path = user_input("Source bin path > ")
-			
+
 			source_tool = get_shell.host_computer.File(source_tool_path)
 			game_file_name = source_tool.name
 			if typeof(source_tool) == "file" and source_tool.is_binary then is_sourcetool_found = true
@@ -483,11 +498,11 @@ ClientPublish = function()
 		print("<b>Sucessfully created the game. The game is currently in verification process.</b>")
 		wait(7)
 		MainMenu()
-		
+
 	else
 		exit("<color=red><b><u>Error while checking type of game security.</u></b></color>")
 	end if
-	
+
 end function
 
 // --------------------------
