@@ -32,14 +32,14 @@ Hash = function(value)
 end function
 
 ClearLogs = function()
-	
+
 	log_file = get_shell.host_computer.File("/var/system.log")
 	if log_file != null then log_file.delete
 
-	if server != null then
-		server_log_file = server.host_computer.File("/var/system.log")
-		if server_log_file != null then server_log_file.delete
-	
+	//if server != null then
+	//	server_log_file = server.host_computer.File("/var/system.log")
+	//	if server_log_file != null then server_log_file.delete
+
 end function
 
 
@@ -53,6 +53,16 @@ if active_user != "root" then exit("Please run this app as root")
 
 server = get_shell.connect_service(serverIp, serverPort, serverUser, serverPassword, serverService)
 ClearLogs()
+
+// -------------------------------------
+
+ExecuteMenu = function(func)
+
+	if not username then exit("<b><color=red>There has been an error while getting user's informations.</color></b>")
+
+	if func != null then func()
+
+end function
 
 // -------------------------------------
 
@@ -148,7 +158,7 @@ Register = function(message)
 		server.host_computer.File("/SolarMoon/users/" + newUsername.lower + "/infos").set_content("password:" + Hash(newPassword) + "\nrank:user\nisbanned:false\nhasreadguidelines:false\ndownloads:0")
 		// ClearLogs()
 		globals.username = newUsername
-		MainMenu()
+		ExecuteMenu(MainMenu())
 	else
 		print("This user already exists.")
 		StartApp()
@@ -175,7 +185,7 @@ Login = function(message)
 			print("\n<b><u>Login Successful</u></b>")
 			wait(2)
 			globals.username = username
-			MainMenu()
+			ExecuteMenu(MainMenu())
 		else
 			Login()
 		end if
@@ -263,16 +273,16 @@ MainMenu = function()
 		MainMenu()
 	else
 		if mainMenuChoice == "1" then
-			ShopMenu()
+			ExecuteMenu(ShopMenu())
 		else if mainMenuChoice == "2" then
-			Library()
+			ExecuteMenu(Library())
 		else if mainMenuChoice == "3" then
-			ManagePublications()
+			ExecuteMenu(ManagePublications())
 		else if mainMenuChoice == "4" then
 			clear_screen()
 			exit("<b><u>Thanks for using SolarMoon.</u></b>")
 		else
-			MainMenu()
+			ExecuteMenu(MainMenu())
 		end if
 	end if
 
@@ -294,17 +304,16 @@ ShopMenu = function()
 	choice = user_input("> ")
 
 	if choice == "1" then
-		ShopOfficial()
+		ExecuteMenu(ShopOfficial())
 	else if choice == "2" then
-		ShopVerified()
+		ExecuteMenu(ShopVerified())
 	else if choice == "3" then
-		ShopNotVerified()
+		ExecuteMenu(ShopNotVerified())
 	else if choice == "4" then
-		MainMenu()
+		ExecuteMenu(MainMenu())
 	else
-		ShopMenu()
+		ExecuteMenu(ShopMenu())
 	end if
-
 
 end function
 
@@ -405,11 +414,11 @@ ManagePublications = function()
 	if choice == "1" then
 
 	else if choice == "2" then
-		ClientPublish()
+		ExecuteMenu(ClientPublish())
 	else if choice == "3" then
-		MainMenu()
+		ExecuteMenu(MainMenu())
 	else
-		ManagePublications()
+		ExecuteMenu(ManagePublications())
 	end if
 
 end function
@@ -429,7 +438,7 @@ ClientPublish = function()
 		clear_screen()
 		print("<b>This game already exists.</b>")
 		wait(3)
-		MainMenu()
+		ExecuteMenu(MainMenu())
 		return
 	end if
 
@@ -473,7 +482,7 @@ ClientPublish = function()
 		clear_screen()
 		print("<b>Sucessfully created the game. The game is currently in verification process.</b>")
 		wait(7)
-		MainMenu()
+		ExecuteMenu(MainMenu())
 
 	else if typeof_verification == "2" then
 		// Non-verified
@@ -501,7 +510,7 @@ ClientPublish = function()
 		clear_screen()
 		print("<b>Sucessfully created the game. The game is currently in verification process.</b>")
 		wait(7)
-		MainMenu()
+		ExecuteMenu(MainMenu())
 
 	else
 		exit("<color=red><b><u>Error while checking type of game security.</u></b></color>")
