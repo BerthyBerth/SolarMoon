@@ -32,9 +32,14 @@ Hash = function(value)
 end function
 
 ClearLogs = function()
+	
+	log_file = get_shell.host_computer.File("/var/system.log")
+	if log_file != null then log_file.delete
 
-	get_shell.host_computer.File("/var/system.log").delete
-
+	if server != null then
+		server_log_file = server.host_computer.File("/var/system.log")
+		if server_log_file != null then server_log_file.delete
+	
 end function
 
 
@@ -274,7 +279,6 @@ MainMenu = function()
 end function
 
 // --------------------------
-
 
 ShopMenu = function()
 
